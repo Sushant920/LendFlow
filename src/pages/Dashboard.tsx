@@ -15,6 +15,8 @@ import {
   ArrowRight,
   TrendingUp,
 } from "lucide-react";
+import { toast } from "sonner";
+import { API_BASE_URL } from "@/config";
 import { format } from "date-fns";
 
 interface Application {
@@ -40,7 +42,7 @@ export default function Dashboard() {
     if (!user) return;
 
     try {
-      const response = await fetch(`http://127.0.0.1:3000/api/applications?user_id=${user.id}`);
+      const response = await fetch(`${API_BASE_URL}/api/applications?user_id=${user.id}`);
       if (!response.ok) throw new Error("Failed to fetch applications");
 
       const data = await response.json();

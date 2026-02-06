@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { API_BASE_URL } from "@/config";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -94,7 +95,7 @@ export default function LoanApplication() {
 
   const loadExistingApplication = async (id: string) => {
     try {
-      const response = await fetch(`http://127.0.0.1:3000/api/application/${id}`);
+      const response = await fetch(`${API_BASE_URL}/api/application/${id}`);
       if (!response.ok) throw new Error("Failed to load application");
 
       const data = await response.json();
@@ -157,7 +158,7 @@ export default function LoanApplication() {
       }
 
       try {
-        const response = await fetch('http://127.0.0.1:3000/api/upload-documents', {
+        const response = await fetch(`${API_BASE_URL}/api/upload-documents`, {
           method: 'POST',
           body: formData,
         });
@@ -233,7 +234,7 @@ export default function LoanApplication() {
 
       // Use Backend API to bypass RLS/Auth restrictions with "mock" user
       try {
-        const response = await fetch('http://127.0.0.1:3000/api/applications', {
+        const response = await fetch(`${API_BASE_URL}/api/applications`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -299,7 +300,7 @@ export default function LoanApplication() {
     console.log("Submitting for offers with App ID:", appId);
 
     try {
-      const response = await fetch('http://127.0.0.1:3000/api/generate-offers', {
+      const response = await fetch(`${API_BASE_URL}/api/generate-offers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ applicationId: appId })

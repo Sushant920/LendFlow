@@ -1,3 +1,4 @@
+import { pool } from '../db';
 // Seed script preserved for future testing
 
 async function seed() {

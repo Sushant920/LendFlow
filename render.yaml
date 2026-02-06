@@ -1,0 +1,31 @@
+services:
+  # 1. Backend Service
+  - type: web
+    name: lendwise-hub-backend
+    env: node
+    root: server
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: PORT
+        value: 10000
+
+  # 2. Frontend Static Site
+  - type: static
+    name: lendwise-hub-frontend
+    env: static
+    root: ./
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+            type: web
+            name: lendwise-hub-backend
+            envVarKey: RENDER_EXTERNAL_URL

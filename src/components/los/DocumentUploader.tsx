@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { UploadCloud, CheckCircle, FileText, X } from "lucide-react";
+import { API_BASE_URL } from "@/config";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -30,7 +31,7 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({ applicationI
         formData.append('applicationId', applicationId);
 
         try {
-            const response = await fetch('http://127.0.0.1:3000/api/upload-documents', {
+            const response = await fetch(`${API_BASE_URL}/api/upload-documents`, {
                 method: 'POST',
                 body: formData,
             });
@@ -69,8 +70,9 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({ applicationI
                         onChange={handleFileChange}
                     />
                     <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center">
-                        <Upload className="h-10 w-10 text-gray-400 mb-2" />
-                        <span className="text-sm font-medium text-gray-700">
+                        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                            <UploadCloud className="h-6 w-6 text-primary" />
+                        </div><span className="text-sm font-medium text-gray-700">
                             {file ? file.name : 'Click to upload Bank Statement (PDF)'}
                         </span>
                         <span className="text-xs text-gray-500 mt-1">or drag and drop</span>

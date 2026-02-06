@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { API_BASE_URL } from "@/config";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +34,7 @@ export default function Applications() {
     if (!user) return;
 
     try {
-      const response = await fetch(`http://127.0.0.1:3000/api/applications?user_id=${user.id}`);
+      const response = await fetch(`${API_BASE_URL}/api/applications?user_id=${user.id}`);
       if (!response.ok) throw new Error("Failed to fetch applications");
 
       const data = await response.json();

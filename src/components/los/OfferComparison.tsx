@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { API_BASE_URL } from "@/config";
 import { Check, X, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
@@ -32,7 +33,7 @@ export const OfferComparison: React.FC<OfferComparisonProps> = ({ applicationId 
     const fetchOffers = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://127.0.0.1:3000/api/generate-offers', {
+            const response = await fetch(`${API_BASE_URL}/api/generate-offers`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ applicationId })
@@ -53,7 +54,7 @@ export const OfferComparison: React.FC<OfferComparisonProps> = ({ applicationId 
 
     const handleApply = async (lenderName: string, lenderId: string) => {
         try {
-            await fetch('http://127.0.0.1:3000/api/apply-offer', {
+            await fetch(`${API_BASE_URL}/api/apply-offer`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ applicationId, lenderId })
