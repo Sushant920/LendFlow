@@ -214,7 +214,14 @@ router.post('/applications', async (req, res) => {
         res.json({ id: rows[0].id });
     } catch (error) {
         console.error('Error creating application:', error);
-        res.status(500).json({ error: 'Failed to create application' });
+        // Helper to get error message safely
+        const errorMessage = error instanceof Error ? error.message : 'Unknown Database Error';
+        const errorStack = error instanceof Error ? error.stack : '';
+
+        res.status(500).json({
+            error: `Failed to create application: ${errorMessage}`,
+            details: errorStack
+        });
     }
 });
 
