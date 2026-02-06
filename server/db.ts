@@ -18,8 +18,24 @@ if (!supabaseUrl || !supabaseKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-import { Pool } from 'pg';
-export const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-});
+// Use lazy initialization to prevent crashes if env vars are missing during build/boot
+let poolInstance: Pool | null = null;
+
+export const getPool = () => {
+    if (!poolInstance) {
+        if (!process.env.DATABASE_URL) {
+            console.error("DATABASE_URL is missing!");
+            throw new Error("DATABASE_URL is not configured");
+        }
+        poolInstance = new Pool({
+            connectionString: process.env.DATABASE_URL,
+            ssl: { rejectUnauthorized: false }
+        });
+    }
+    return poolInstance;
+};
+
+// Backwards compatibility helper (deprecated, use getPool)
+export const pool = {
+    query: (text: string, params?: any[]) => getPool().query(text, params),
+};
