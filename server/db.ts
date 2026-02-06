@@ -18,6 +18,8 @@ if (!supabaseUrl || !supabaseKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
+import { Pool } from 'pg';
+
 // Use lazy initialization to prevent crashes if env vars are missing during build/boot
 let poolInstance: Pool | null = null;
 

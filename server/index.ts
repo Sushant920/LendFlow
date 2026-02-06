@@ -2,7 +2,7 @@
 import express from 'express';
 import cors from 'cors';
 import './db'; // Initialize env and db
-import apiRoutes from './routes/api';
+import apiRoutes from './routes/api.js';
 
 
 const app = express();
@@ -12,6 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
+app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
 app.use('/api', apiRoutes);
 
 app.get('/', (req, res) => {
