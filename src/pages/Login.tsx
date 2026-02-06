@@ -35,16 +35,18 @@ export default function Login() {
       return;
     }
 
-    toast({
-      title: "Welcome back!",
-      description: "You have successfully logged in.",
-    });
-
-    // Wait a bit for role to be fetched
-    setTimeout(() => {
-      navigate(from, { replace: true });
-    }, 500);
   };
+
+  // Redirect when user is authenticated
+  useEffect(() => {
+    if (role) {
+      toast({
+        title: "Welcome back!",
+        description: "You have successfully logged in.",
+      });
+      navigate(from, { replace: true });
+    }
+  }, [role, navigate, from, toast]);
 
   return (
     <div className="flex min-h-screen">
