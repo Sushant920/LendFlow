@@ -243,7 +243,16 @@ export default function LoanApplication() {
         });
 
         if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
+          const rawText = await response.text();
+          let errData: any = {};
+          try {
+            errData = JSON.parse(rawText);
+          } catch {
+            // If not JSON, use the raw text (which might be the Vercel error page HTML/Message)
+            console.error("Non-JSON Error Response:", rawText);
+            throw new Error(`Server Error (${response.status}): ${rawText.substring(0, 200)}...`); // Truncate to avoid huge HTML
+          }
+
           console.error("Backend Error Response:", errData);
           throw new Error(errData.error || `Server returned ${response.status}: ${response.statusText}`);
         }
