@@ -250,7 +250,12 @@ export default function LoanApplication() {
         setApplicationId(data.id);
         return data.id;
       } catch (error) {
-        toast({ variant: "destructive", title: "Error", description: "Failed to create application" });
+        console.error("Save Application Error:", error);
+        toast({
+          variant: "destructive",
+          title: "Error creating application",
+          description: `Failed to connect to ${API_BASE_URL}/api/applications. ${error instanceof Error ? error.message : "Unknown Error"}`
+        });
         return null;
       }
     }
