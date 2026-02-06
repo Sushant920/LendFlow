@@ -23,83 +23,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // FORCED MOCK AUTH (Bypass Rate Limits)
-    // This user exists in the DB via seed_user.ts
-    const userId = '00000000-0000-0000-0000-000000000001';
-    const userEmail = 'demo@example.com';
+  // Standard Auth Logic
+  setLoading(true);
 
-    const mockUser: User = {
-      id: userId,
-      app_metadata: {},
-      user_metadata: { full_name: "Demo User", company_name: "Demo Co" },
-      aud: "authenticated",
-      created_at: new Date().toISOString(),
-      role: "authenticated",
-      email: userEmail
-    } as User;
-
-    setSession({
-      access_token: "mock-token-bypass",
-      refresh_token: "mock-refresh-bypass",
-      expires_in: 3600,
-      token_type: "bearer",
-      user: mockUser
-    });
-    setUser(mockUser);
-    setRole("merchant");
-    setLoading(false);
-
-    /*
-    // Standard Auth Logic (Commented out due to Rate Limits)
-    // Set up auth state listener first
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          // Fetch user role
-          setTimeout(async () => {
-            const { data: roles } = await supabase
-              .from("user_roles")
-              .select("role")
-              .eq("user_id", session.user.id)
-              .single();
-
-            setRole(roles?.role as AppRole ?? "merchant");
-          }, 0);
-        } else {
-          setRole(null);
-        }
-
-        setLoading(false);
-      }
-    );
-
-    // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+  // Set up auth state listener first
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    async (event, session) => {
+      console.log("Auth state change:", event, session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", session.user.id)
-          .single()
-          .then(({ data: roles }) => {
-            setRole(roles?.role as AppRole ?? "merchant");
-            setLoading(false);
-          });
-      } else {
-        setLoading(false);
-      }
-    });
+        // Fetch user role
+        try {
+          const { data: roles, error } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", session.user.id)
+            .maybeSingle(); // Use maybeSingle to avoid 406 error if row missing
 
-    return () => subscription.unsubscribe();
-    */
-  }, []);
+          if (error) console.error("Error fetching role:", error);
+          setRole((roles?.role as AppRole) ?? "merchant");
+        } catch (err) {
+          console.error("Role fetch failed:", err);
+          setRole("merchant");
+        }
+      } else {
+        setRole(null);
+      }
+
+      setLoading(false);
+    }
+  );
+
+  // Check for existing session on mount
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    if (!session) setLoading(false);
+  });
+
+  return () => subscription.unsubscribe();
 
   const signUp = async (email: string, password: string, fullName: string, companyName?: string) => {
     const { error } = await supabase.auth.signUp({
