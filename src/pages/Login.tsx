@@ -39,7 +39,9 @@ export default function Login() {
 
   // Redirect when user is authenticated
   useEffect(() => {
+    console.log("Login.tsx: Auth Effect. Role:", role, "From:", from);
     if (role) {
+      console.log("Login.tsx: Authenticated! Navigating to:", from);
       toast({
         title: "Welcome back!",
         description: "You have successfully logged in.",
