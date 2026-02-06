@@ -17,7 +17,7 @@ services:
         value: 10000
 
   # 2. Frontend Static Site
-  - type: site
+  - type: web
     name: lendwise-hub-frontend
     env: static
     root: ./
