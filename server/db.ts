@@ -16,7 +16,28 @@ if (!supabaseUrl || !supabaseKey) {
     console.error('Keys present:', !!supabaseKey);
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Use lazy initialization for Supabase to prevent boot crashes
+let supabaseInstance: any = null;
+
+const getSupabase = () => {
+    if (!supabaseInstance) {
+        if (!supabaseUrl || !supabaseKey) {
+            console.error("Supabase URL/Key missing. Check Vercel Env Vars.");
+            throw new Error("Supabase credentials not configured");
+        }
+        supabaseInstance = createClient(supabaseUrl, supabaseKey);
+    }
+    return supabaseInstance;
+};
+
+// Export a proxy object that mimics the Supabase client but initializes lazily
+export const supabase = {
+    from: (table: string) => getSupabase().from(table),
+    auth: {
+        getUser: (token: string) => getSupabase().auth.getUser(token),
+        // Add other auth methods as needed or expose the raw client via a getter
+    }
+} as any; // Cast to any to avoid complex type mocking, or use ReturnType<typeof createClient>
 
 import { Pool } from 'pg';
 
