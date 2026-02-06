@@ -23,45 +23,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Standard Auth Logic
-  setLoading(true);
+  useEffect(() => {
+    // Standard Auth Logic
+    setLoading(true);
 
-  // Set up auth state listener first
-  const { data: { subscription } } = supabase.auth.onAuthStateChange(
-    async (event, session) => {
-      console.log("Auth state change:", event, session?.user?.email);
-      setSession(session);
-      setUser(session?.user ?? null);
+    // Set up auth state listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log("Auth state change:", event, session?.user?.email);
+        setSession(session);
+        setUser(session?.user ?? null);
 
-      if (session?.user) {
-        // Fetch user role
-        try {
-          const { data: roles, error } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", session.user.id)
-            .maybeSingle(); // Use maybeSingle to avoid 406 error if row missing
+        if (session?.user) {
+          // Fetch user role
+          try {
+            const { data: roles, error } = await supabase
+              .from("user_roles")
+              .select("role")
+              .eq("user_id", session.user.id)
+              .maybeSingle(); // Use maybeSingle to avoid 406 error if row missing
 
-          if (error) console.error("Error fetching role:", error);
-          setRole((roles?.role as AppRole) ?? "merchant");
-        } catch (err) {
-          console.error("Role fetch failed:", err);
-          setRole("merchant");
+            if (error) console.error("Error fetching role:", error);
+            setRole((roles?.role as AppRole) ?? "merchant");
+          } catch (err) {
+            console.error("Role fetch failed:", err);
+            setRole("merchant");
+          }
+        } else {
+          setRole(null);
         }
-      } else {
-        setRole(null);
+
+        setLoading(false);
       }
+    );
 
-      setLoading(false);
-    }
-  );
+    // Check for existing session on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) setLoading(false);
+    });
 
-  // Check for existing session on mount
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    if (!session) setLoading(false);
-  });
-
-  return () => subscription.unsubscribe();
+    return () => subscription.unsubscribe();
+  }, []);
 
   const signUp = async (email: string, password: string, fullName: string, companyName?: string) => {
     const { error } = await supabase.auth.signUp({
