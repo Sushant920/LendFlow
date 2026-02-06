@@ -243,7 +243,9 @@ export default function LoanApplication() {
         });
 
         if (!response.ok) {
-          throw new Error('Failed to create application');
+          const errData = await response.json().catch(() => ({}));
+          console.error("Backend Error Response:", errData);
+          throw new Error(errData.error || `Server returned ${response.status}: ${response.statusText}`);
         }
 
         const data = await response.json();
