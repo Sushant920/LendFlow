@@ -2,7 +2,7 @@
 import Tesseract from 'tesseract.js';
 import fs from 'fs';
 
-export const processDocument = async (filePath: string, mimeType: string) => {
+export const processDocument = async (fileInput: string | Buffer, mimeType: string) => {
     try {
         if (mimeType === 'application/pdf') {
             // For this MVP, we will assume PDF is text-based or just return mock data
@@ -14,7 +14,8 @@ export const processDocument = async (filePath: string, mimeType: string) => {
                 confidence: 100
             };
         } else {
-            const { data: { text, confidence } } = await Tesseract.recognize(filePath, 'eng');
+            // Tesseract recognize accepts Buffer or path
+            const { data: { text, confidence } } = await Tesseract.recognize(fileInput, 'eng');
             return { text, confidence };
         }
     } catch (error) {

@@ -7,7 +7,7 @@ import { matchLenders } from '../services/lender_matcher.js';
 import { supabase } from '../db.js';
 
 const router = express.Router();
-const upload = multer({ dest: '/tmp/' });
+const upload = multer({ storage: multer.memoryStorage() });
 
 // 1. Upload & Process
 router.post('/upload-documents', upload.single('file'), async (req, res) => {
@@ -18,7 +18,8 @@ router.post('/upload-documents', upload.single('file'), async (req, res) => {
         if (!file) return res.status(400).json({ error: 'No file uploaded' });
 
         // A. OCR
-        const ocrResult = await processDocument(file.path, file.mimetype);
+        // Pass buffer if available (memory storage), else path
+        const ocrResult = await processDocument(file.buffer || file.path, file.mimetype);
 
         // B. Extract Financials
         const financials = extractFinancials(ocrResult.text);

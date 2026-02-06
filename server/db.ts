@@ -2,7 +2,11 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load .env explicitly
+import { fileURLToPath } from 'url';
+
+// Load .env explicitly (Fix for ESM __dirname)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 import { createClient } from '@supabase/supabase-js';
