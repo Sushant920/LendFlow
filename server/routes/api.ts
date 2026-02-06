@@ -1,10 +1,10 @@
 
 import express from 'express';
 import multer from 'multer';
-import { processDocument, extractFinancials } from '../services/ocr';
-import { calculateEligibilityScore } from '../services/scoring';
-import { matchLenders } from '../services/lender_matcher';
-import { supabase } from '../db';
+import { processDocument, extractFinancials } from '../services/ocr.js';
+import { calculateEligibilityScore } from '../services/scoring.js';
+import { matchLenders } from '../services/lender_matcher.js';
+import { supabase } from '../db.js';
 
 const router = express.Router();
 const upload = multer({ dest: 'uploads/' });
@@ -56,7 +56,7 @@ router.post('/generate-offers', async (req, res) => {
     try {
         console.log('Generate Offers Request Body:', req.body);
         const { applicationId } = req.body;
-        const pool = (await import('../db')).pool;
+        const pool = (await import('../db.js')).pool;
 
         // CHECK EXISTING OFFERS FIRST
         const { rows: existingOffers } = await pool.query(`
@@ -202,7 +202,7 @@ router.post('/applications', async (req, res) => {
         const { user_id, loan_type, requested_amount, business_name, business_age_months, monthly_revenue, industry, status, founder_cibil_score } = req.body;
 
         // Use pg pool to bypass RLS/Auth issues for testing with "mock" user
-        const { rows } = await import('../db').then(m => m.pool.query(`
+        const { rows } = await import('../db.js').then(m => m.pool.query(`
             INSERT INTO public.loan_applications (
                 user_id, loan_type, requested_amount, business_name, 
                 business_age_months, monthly_revenue, industry, status, founder_cibil_score
@@ -224,7 +224,7 @@ router.get('/applications', async (req, res) => {
         const { user_id } = req.query;
         if (!user_id) return res.status(400).json({ error: 'Missing user_id' });
 
-        const { rows } = await import('../db').then(m => m.pool.query(`
+        const { rows } = await import('../db.js').then(m => m.pool.query(`
             SELECT * FROM public.loan_applications 
             WHERE user_id = $1 
             ORDER BY created_at DESC
@@ -242,7 +242,7 @@ router.get('/applications', async (req, res) => {
 router.get('/application/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { rows } = await import('../db').then(m => m.pool.query(`
+        const { rows } = await import('../db.js').then(m => m.pool.query(`
             SELECT * FROM public.loan_applications 
             WHERE id = $1
         `, [id]));
@@ -263,7 +263,7 @@ router.post('/apply-offer', async (req, res) => {
     try {
         const { applicationId, lenderId } = req.body;
 
-        const pool = (await import('../db')).pool;
+        const pool = (await import('../db.js')).pool;
 
         // Update Offer Status
         await pool.query(`
