@@ -1,7 +1,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-import { supabase } from '../db';
+import { supabase } from '../db.js';
 
 interface Lender {
     id: string;

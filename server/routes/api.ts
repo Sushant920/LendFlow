@@ -24,7 +24,7 @@ router.post('/upload-documents', upload.single('file'), async (req, res) => {
         const financials = extractFinancials(ocrResult.text);
 
         // C. Save to DB using pg pool
-        await import('../db').then(m => m.pool.query(`
+        await import('../db.js').then(m => m.pool.query(`
             INSERT INTO public.financial_data (
                 application_id, average_monthly_revenue, average_balance, 
                 total_revenue_last_6m, inflow_outflow_ratio, 
