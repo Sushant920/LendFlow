@@ -39,7 +39,7 @@ export default function Login() {
 
   // Redirect when user is authenticated
   useEffect(() => {
-    console.log("Login.tsx: Auth Effect. Role:", role, "From:", from);
+    console.log("Login.tsx: Auth Effect. Role:", role, "From:", from, "VERSION: 1.0.1 (Cache Buster)");
     if (role) {
       console.log("Login.tsx: Authenticated! Navigating to:", from);
       toast({
