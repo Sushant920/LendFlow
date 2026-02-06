@@ -3,7 +3,7 @@ services:
   - type: web
     name: lendwise-hub-backend
     env: node
-    root: server
+    rootDir: server
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
@@ -20,7 +20,6 @@ services:
   - type: web
     name: lendwise-hub-frontend
     env: static
-    root: ./
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
     envVars:
