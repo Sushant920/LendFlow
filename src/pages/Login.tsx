@@ -131,6 +131,13 @@ export default function Login() {
           </form>
         </Card>
       </div>
+
+      {/* Debug Info (Temporary) */}
+      <div className="fixed bottom-2 right-2 text-xs text-muted-foreground bg-background/80 p-2 rounded border">
+        API: {import.meta.env.VITE_API_URL || "Unset"} |
+        Base: {import('@/config').then(m => m.API_BASE_URL).catch(() => "Loading...")} |
+        v1.0.2
+      </div>
     </div>
   );
 }
