@@ -13,5 +13,5 @@ if (!isLocal && (apiUrl?.includes('localhost') || apiUrl?.includes('127.0.0.1'))
     apiUrl = '';
 }
 
-// Fallback logic
-export const API_BASE_URL = apiUrl || (isLocal ? 'http://localhost:3000' : '');
+// Fallback logic: use relative URLs when local so Vite proxy forwards /api to backend
+export const API_BASE_URL = apiUrl || (isLocal ? '' : '');

@@ -1,12 +1,36 @@
 
 import express from 'express';
 import multer from 'multer';
-import { processDocument, extractFinancials } from '../services/ocr.js';
-import { calculateEligibilityScore } from '../services/scoring.js';
-import { matchLenders } from '../services/lender_matcher.js';
-import { supabase } from '../db.js';
+import { processDocument, extractFinancials } from '../services/ocr';
+import { calculateEligibilityScore } from '../services/scoring';
+import { matchLenders } from '../services/lender_matcher';
+import { supabase } from '../db';
+import { memoryStore } from '../store/memory';
 
 const router = express.Router();
+
+// Use in-memory store when DB connection fails (ETIMEDOUT, etc.) for local dev
+let useMemoryStore = false;
+let hasLoggedFallback = false;
+const logFallbackOnce = (context: string) => {
+  if (!hasLoggedFallback) {
+    hasLoggedFallback = true;
+    console.warn('[DB] Connection failed, switching to in-memory store for applications. (Step 1 creates with loan_type only; nulls for other fields are expected.)');
+  }
+};
+const isDbConnectionError = (err: unknown) => {
+  const e = err as { code?: string; message?: string; errors?: Array<{ code?: string }> };
+  const code = e?.code;
+  const message = e?.message || '';
+  const innerCodes = (e?.errors || []).map((x) => x?.code);
+  return (
+    code === 'ETIMEDOUT' ||
+    code === 'ECONNREFUSED' ||
+    code === 'ENOTFOUND' ||
+    message.includes('ETIMEDOUT') ||
+    innerCodes.some((c) => c === 'ETIMEDOUT' || c === 'ECONNREFUSED')
+  );
+};
 const upload = multer({ storage: multer.memoryStorage() });
 
 // 1. Upload & Process
@@ -25,7 +49,7 @@ router.post('/upload-documents', upload.single('file'), async (req, res) => {
         const financials = extractFinancials(ocrResult.text);
 
         // C. Save to DB using pg pool
-        await import('../db.js').then(m => m.pool.query(`
+        await import('../db').then(m => m.pool.query(`
             INSERT INTO public.financial_data (
                 application_id, average_monthly_revenue, average_balance, 
                 total_revenue_last_6m, inflow_outflow_ratio, 
@@ -57,7 +81,7 @@ router.post('/generate-offers', async (req, res) => {
     try {
         console.log('Generate Offers Request Body:', req.body);
         const { applicationId } = req.body;
-        const pool = (await import('../db.js')).pool;
+        const pool = (await import('../db')).pool;
 
         // CHECK EXISTING OFFERS FIRST
         const { rows: existingOffers } = await pool.query(`
@@ -202,27 +226,64 @@ router.post('/applications', async (req, res) => {
         console.log('Received application body:', req.body);
         const { user_id, loan_type, requested_amount, business_name, business_age_months, monthly_revenue, industry, status, founder_cibil_score } = req.body;
 
-        // Use pg pool to bypass RLS/Auth issues for testing with "mock" user
-        const { rows } = await import('../db.js').then(m => m.pool.query(`
-            INSERT INTO public.loan_applications (
-                user_id, loan_type, requested_amount, business_name, 
-                business_age_months, monthly_revenue, industry, status, founder_cibil_score
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            RETURNING id
-        `, [user_id, loan_type, requested_amount, business_name, business_age_months, monthly_revenue, industry, status, founder_cibil_score]));
+        if (!user_id || !loan_type) {
+            return res.status(400).json({ error: 'user_id and loan_type are required' });
+        }
 
-        res.json({ id: rows[0].id });
+        const toNum = (v: any) => (v === '' || v === undefined || v === null || Number.isNaN(Number(v))) ? null : Number(v);
+        const cleanRequestedAmount = toNum(requested_amount);
+        const cleanBusinessAge = toNum(business_age_months);
+        const cleanMonthlyRevenue = toNum(monthly_revenue);
+        const cleanFounderCibil = toNum(founder_cibil_score);
+
+        if (useMemoryStore) {
+            const { id } = memoryStore.insertApplication({
+                user_id,
+                loan_type: loan_type || 'working_capital',
+                requested_amount: cleanRequestedAmount,
+                business_name: business_name || null,
+                business_age_months: cleanBusinessAge,
+                monthly_revenue: cleanMonthlyRevenue,
+                industry: industry || null,
+                status: status || 'draft',
+                founder_cibil_score: cleanFounderCibil,
+            });
+            return res.json({ id });
+        }
+
+        try {
+            const { rows } = await import('../db').then(m => m.pool.query(`
+                INSERT INTO public.loan_applications (
+                    user_id, loan_type, requested_amount, business_name, 
+                    business_age_months, monthly_revenue, industry, status, founder_cibil_score
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                RETURNING id
+            `, [user_id, loan_type || 'working_capital', cleanRequestedAmount, business_name || null, cleanBusinessAge, cleanMonthlyRevenue, industry || null, status || 'draft', cleanFounderCibil]));
+            res.json({ id: rows[0].id });
+        } catch (dbErr) {
+            if (isDbConnectionError(dbErr)) {
+                useMemoryStore = true;
+                logFallbackOnce('create');
+                const { id } = memoryStore.insertApplication({
+                    user_id,
+                    loan_type: loan_type || 'working_capital',
+                    requested_amount: cleanRequestedAmount,
+                    business_name: business_name || null,
+                    business_age_months: cleanBusinessAge,
+                    monthly_revenue: cleanMonthlyRevenue,
+                    industry: industry || null,
+                    status: status || 'draft',
+                    founder_cibil_score: cleanFounderCibil,
+                });
+                return res.json({ id });
+            }
+            throw dbErr;
+        }
     } catch (error) {
         console.error('Error creating application:', error);
-        // Helper to get error message safely
         const errorMessage = error instanceof Error ? error.message : 'Unknown Database Error';
-        const errorStack = error instanceof Error ? error.stack : '';
-
-        res.status(500).json({
-            error: `Failed to create application: ${errorMessage}`,
-            details: errorStack
-        });
+        res.status(500).json({ error: `Failed to create application: ${errorMessage}` });
     }
 });
 
@@ -232,13 +293,27 @@ router.get('/applications', async (req, res) => {
         const { user_id } = req.query;
         if (!user_id) return res.status(400).json({ error: 'Missing user_id' });
 
-        const { rows } = await import('../db.js').then(m => m.pool.query(`
-            SELECT * FROM public.loan_applications 
-            WHERE user_id = $1 
-            ORDER BY created_at DESC
-        `, [user_id]));
+        if (useMemoryStore) {
+            const rows = memoryStore.getByUserId(String(user_id));
+            return res.json(rows);
+        }
 
-        res.json(rows);
+        try {
+            const { rows } = await import('../db').then(m => m.pool.query(`
+                SELECT * FROM public.loan_applications 
+                WHERE user_id = $1 
+                ORDER BY created_at DESC
+            `, [user_id]));
+            res.json(rows);
+        } catch (dbErr) {
+            if (isDbConnectionError(dbErr)) {
+                useMemoryStore = true;
+                logFallbackOnce('fetch');
+                const rows = memoryStore.getByUserId(String(user_id));
+                return res.json(rows);
+            }
+            throw dbErr;
+        }
     } catch (error) {
         console.error('Error fetching applications:', error);
         res.status(500).json({ error: 'Failed to fetch applications' });
@@ -250,16 +325,29 @@ router.get('/applications', async (req, res) => {
 router.get('/application/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { rows } = await import('../db.js').then(m => m.pool.query(`
-            SELECT * FROM public.loan_applications 
-            WHERE id = $1
-        `, [id]));
 
-        if (rows.length === 0) {
-            return res.status(404).json({ error: 'Application not found' });
+        if (useMemoryStore) {
+            const row = memoryStore.getById(id);
+            if (!row) return res.status(404).json({ error: 'Application not found' });
+            return res.json(row);
         }
 
-        res.json(rows[0]);
+        try {
+            const { rows } = await import('../db').then(m => m.pool.query(`
+                SELECT * FROM public.loan_applications 
+                WHERE id = $1
+            `, [id]));
+            if (rows.length === 0) return res.status(404).json({ error: 'Application not found' });
+            res.json(rows[0]);
+        } catch (dbErr) {
+            if (isDbConnectionError(dbErr)) {
+                useMemoryStore = true;
+                const row = memoryStore.getById(id);
+                if (!row) return res.status(404).json({ error: 'Application not found' });
+                return res.json(row);
+            }
+            throw dbErr;
+        }
     } catch (error) {
         console.error('Error fetching application:', error);
         res.status(500).json({ error: 'Failed to fetch application' });
@@ -271,7 +359,7 @@ router.post('/apply-offer', async (req, res) => {
     try {
         const { applicationId, lenderId } = req.body;
 
-        const pool = (await import('../db.js')).pool;
+        const pool = (await import('../db')).pool;
 
         // Update Offer Status
         await pool.query(`

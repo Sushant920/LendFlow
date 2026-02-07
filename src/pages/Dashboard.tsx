@@ -36,23 +36,32 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchApplications();
-  }, [user]);
-  const fetchApplications = async () => {
-    if (!user) return;
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/applications?user_id=${user.id}`);
-      if (!response.ok) throw new Error("Failed to fetch applications");
-
-      const data = await response.json();
-      setApplications(data);
-    } catch (error) {
-      console.error("Error fetching applications:", error);
-    } finally {
+    if (!user) {
       setLoading(false);
+      return;
     }
-  };
+    const controller = new AbortController();
+    const fetchApplications = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/applications?user_id=${user.id}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error("Failed to fetch applications");
+
+        const data = await response.json();
+        setApplications(Array.isArray(data) ? data : []);
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          console.error("Error fetching applications:", error);
+          toast.error("Could not load applications. Check that the backend is running.");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchApplications();
+    return () => controller.abort();
+  }, [user]);
 
   const stats = {
     total: applications.length,

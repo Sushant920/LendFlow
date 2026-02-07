@@ -169,7 +169,7 @@ const Index = () => {
             <span className="font-semibold">LendFlow</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            © 2024 LendFlow. All rights reserved.
+            © {new Date().getFullYear()} LendFlow. All rights reserved.
           </p>
         </div>
       </footer>

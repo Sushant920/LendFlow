@@ -1,7 +1,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-import { supabase } from '../db.js';
+import { supabase } from '../db';
 
 interface Lender {
     id: string;
@@ -30,7 +30,7 @@ export const matchLenders = async (score: number, monthlyRevenue: number, applic
     });
 
     const decisions = lenders.map((lender: Lender) => {
-        const isEligible = eligibleLenders.find(l => l.id === lender.id);
+        const isEligible = eligibleLenders.find((l: Lender) => l.id === lender.id);
         return {
             lender_id: lender.id,
             lender_name: lender.name,

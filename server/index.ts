@@ -2,7 +2,7 @@
 import express from 'express';
 import cors from 'cors';
 import './db'; // Initialize env and db
-import apiRoutes from './routes/api.js';
+import apiRoutes from './routes/api';
 
 
 const app = express();
@@ -19,10 +19,11 @@ app.get('/', (req, res) => {
   res.send('Lendwise LOS API is running');
 });
 
-// Export app for Vercel
+// Export app for Vercel serverless
 export default app;
 
-if (process.env.NODE_ENV !== 'production') {
+// Listen when running as standalone server (Railway, Render, local) - not on Vercel
+if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });
