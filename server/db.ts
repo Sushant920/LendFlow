@@ -61,4 +61,5 @@ export const getPool = () => {
 // Backwards compatibility helper (deprecated, use getPool)
 export const pool = {
     query: (text: string, params?: any[]) => getPool().query(text, params),
+    end: () => getPool().end(),
 };
