@@ -49,7 +49,7 @@ router.post('/upload-documents', upload.single('file'), async (req, res) => {
         const financials = extractFinancials(ocrResult.text);
 
         // C. Save to DB using pg pool
-        await import('../db').then(m => m.pool.query(`
+        await import('../db.js').then(m => m.pool.query(`
             INSERT INTO public.financial_data (
                 application_id, average_monthly_revenue, average_balance, 
                 total_revenue_last_6m, inflow_outflow_ratio, 
@@ -81,7 +81,7 @@ router.post('/generate-offers', async (req, res) => {
     try {
         console.log('Generate Offers Request Body:', req.body);
         const { applicationId } = req.body;
-        const pool = (await import('../db')).pool;
+        const pool = (await import('../db.js')).pool;
 
         // CHECK EXISTING OFFERS FIRST
         const { rows: existingOffers } = await pool.query(`
@@ -252,7 +252,7 @@ router.post('/applications', async (req, res) => {
         }
 
         try {
-            const { rows } = await import('../db').then(m => m.pool.query(`
+            const { rows } = await import('../db.js').then(m => m.pool.query(`
                 INSERT INTO public.loan_applications (
                     user_id, loan_type, requested_amount, business_name, 
                     business_age_months, monthly_revenue, industry, status, founder_cibil_score
@@ -299,7 +299,7 @@ router.get('/applications', async (req, res) => {
         }
 
         try {
-            const { rows } = await import('../db').then(m => m.pool.query(`
+            const { rows } = await import('../db.js').then(m => m.pool.query(`
                 SELECT * FROM public.loan_applications 
                 WHERE user_id = $1 
                 ORDER BY created_at DESC
@@ -333,7 +333,7 @@ router.get('/application/:id', async (req, res) => {
         }
 
         try {
-            const { rows } = await import('../db').then(m => m.pool.query(`
+            const { rows } = await import('../db.js').then(m => m.pool.query(`
                 SELECT * FROM public.loan_applications 
                 WHERE id = $1
             `, [id]));
@@ -359,7 +359,7 @@ router.post('/apply-offer', async (req, res) => {
     try {
         const { applicationId, lenderId } = req.body;
 
-        const pool = (await import('../db')).pool;
+        const pool = (await import('../db.js')).pool;
 
         // Update Offer Status
         await pool.query(`
